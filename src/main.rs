@@ -5,6 +5,7 @@ use termcolor::WriteColor;
 
 mod cli;
 mod errors;
+mod regex;
 
 c_ffi::c_main!(run);
 
@@ -53,35 +54,25 @@ fn run(args: c_ffi::Args) -> u8 {
     let tag_include = if args.tag.is_empty() {
         None
     } else {
-        let mut regex_str = String::new();
-        regex_str.push_str("^(");
-
-        for tag in args.tag {
-            regex_str.push_str(&tag);
-            regex_str.push('|');
+        match regex::from_tag_list(&args.tag) {
+            Ok(regex) => Some(regex),
+            Err(error) => {
+                eprintln!("Cannot compile regex for includeed tags: {}", error);
+                return errors::INTERNAL;
+            }
         }
-
-        regex_str.pop();
-        regex_str.push_str(")$");
-
-        regex::Regex::new(&regex_str).ok()
     };
 
     let tag_exclude = if args.ignored_tag.is_empty() {
         None
     } else {
-        let mut regex_str = String::new();
-        regex_str.push_str("^(");
-
-        for tag in args.ignored_tag {
-            regex_str.push_str(&tag);
-            regex_str.push('|');
+        match regex::from_tag_list(&args.ignored_tag) {
+            Ok(regex) => Some(regex),
+            Err(error) => {
+                eprintln!("Cannot compile regex for ignored tags: {}", error);
+                return errors::INTERNAL;
+            }
         }
-
-        regex_str.pop();
-        regex_str.push_str(")$");
-
-        regex::Regex::new(&regex_str).ok()
     };
 
     let log_re = regex::Regex::new(r#"^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$"#).unwrap();
