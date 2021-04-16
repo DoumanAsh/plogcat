@@ -67,15 +67,19 @@ impl core::str::FromStr for App {
 ///plogcat 1.0.0
 ///Colorful wrapper over adb logcat command
 pub struct Cli {
-    #[arg(short, long)]
+    #[arg(long)]
     ///Filter output by currently running application.
     pub current: bool,
+
+    #[arg(long)]
+    ///Whether to include time. Default: false.
+    pub time: bool,
 
     #[arg(short, long)]
     ///Specifies tag width. Default: 23.
     pub tag_width: usize,
 
-    #[arg(short, long)]
+    #[arg(long)]
     ///Package name or pid by which to filter logcat
     pub app: Option<App>,
 }
