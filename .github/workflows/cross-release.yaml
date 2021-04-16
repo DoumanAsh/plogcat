@@ -1,0 +1,55 @@
+name: Rust
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-musl, armv7-unknown-linux-musleabihf]
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install Rust Unix
+      run: |
+        if rustup --version >/dev/null 2>&1; then
+            rustup update
+        else
+             curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
+             echo ::add-path::$HOME/.cargo/bin
+        fi
+
+    - name: Rust version
+      run: |
+        cargo --version
+        rustc --version
+
+    - name: Install cross
+      run: cargo install cross
+
+    - name: Build release
+      run: cross build --release --target ${{matrix.target}}
+      env:
+        RUSTFLAGS: '-C link-arg=-s'
+        LIBOPUS_STATIC: 1
+
+    - name: Pack
+      run: zip -j plogcat-${{matrix.target}}.zip target/${{matrix.target}}/release/plogcat
+
+    - name: Upload to release Unix
+      run: |
+        curl \
+          -f \
+          -sSL \
+          -XPOST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Content-Type: application/zip" \
+          --upload-file "plogcat-${{matrix.target}}.zip" \
+          "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=plogcat-${{matrix.target}}.zip"

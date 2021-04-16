@@ -1,0 +1,27 @@
+[package]
+name = "plogcat"
+version = "1.0.0"
+authors = ["Douman <douman@gmx.se>"]
+edition = "2018"
+repository = "https://github.com/DoumanAsh/plogcat"
+description = "Colorful wrapper over adb logcat"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+    "README.md"
+]
+
+[dependencies]
+arg = "0.3"
+c-ffi = "0.4"
+regex = "1.4"
+
+termcolor = "1"
+term_size = "0.3"
+
+scope-guard = "1"
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1
