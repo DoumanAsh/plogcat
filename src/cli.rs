@@ -71,6 +71,10 @@ pub struct Cli {
     ///Filter output by currently running application.
     pub current: bool,
 
+    #[arg(short, long)]
+    ///Clears logcat content before running.
+    pub clear: bool,
+
     #[arg(long)]
     ///Whether to include time. Default: false.
     pub time: bool,

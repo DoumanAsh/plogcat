@@ -40,6 +40,16 @@ fn run(args: c_ffi::Args) -> u8 {
     adb.arg("-v");
     adb.arg("time");
 
+    if args.clear {
+        let mut adb = std::process::Command::new("adb");
+        adb.arg("logcat");
+        adb.arg("-c");
+        if let Err(error) = adb.status() {
+            eprintln!("Failed to execute adb -c: {}", error);
+            return errors::ADB_FAIL
+        }
+    }
+
     let adb = match adb.spawn() {
         Ok(adb) => adb,
         Err(error) => {
