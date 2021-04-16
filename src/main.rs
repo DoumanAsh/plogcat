@@ -32,7 +32,7 @@ fn run(args: c_ffi::Args) -> u8 {
     }
 
     if let Some(pid) = args.app {
-        println!(">Using pid {}", pid.0);
+        println!(">Filtering by pid {}", pid.0);
         adb.arg(&format!("--pid={}", pid.0));
     }
 
@@ -49,6 +49,47 @@ fn run(args: c_ffi::Args) -> u8 {
             return errors::ADB_FAIL
         }
     }
+
+    let tag_include = if args.tag.is_empty() {
+        None
+    } else {
+        let mut regex_str = String::new();
+        regex_str.push_str("^(");
+
+        for tag in args.tag {
+            regex_str.push_str(&tag);
+            regex_str.push('|');
+        }
+
+        regex_str.pop();
+        regex_str.push_str(")$");
+
+        regex::Regex::new(&regex_str).ok()
+    };
+
+    let tag_exclude = if args.ignored_tag.is_empty() {
+        None
+    } else {
+        let mut regex_str = String::new();
+        regex_str.push_str("^(");
+
+        for tag in args.ignored_tag {
+            regex_str.push_str(&tag);
+            regex_str.push('|');
+        }
+
+        regex_str.pop();
+        regex_str.push_str(")$");
+
+        regex::Regex::new(&regex_str).ok()
+    };
+
+    let log_re = regex::Regex::new(r#"^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$"#).unwrap();
+    let term = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
+    let term_width = match term_size::dimensions() {
+        Some((width, _)) => width,
+        None => 0,
+    };
 
     let adb = match adb.spawn() {
         Ok(adb) => adb,
@@ -72,14 +113,6 @@ fn run(args: c_ffi::Args) -> u8 {
         }
     };
     let mut stdout = std::io::BufReader::new(stdout);
-
-    let term_width = match term_size::dimensions() {
-        Some((width, _)) => width,
-        None => 0,
-    };
-
-    let log_re = regex::Regex::new(r#"^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$"#).unwrap();
-    let term = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
     let mut term = term.lock();
 
     //                    tag + spaces + level
@@ -103,9 +136,22 @@ fn run(args: c_ffi::Args) -> u8 {
             Some(_) | None => continue,
         };
 
+        let tag = caps.get(3).unwrap().as_str().trim();
+
+        if let Some(regex) = tag_exclude.as_ref() {
+            if regex.is_match(tag) {
+                continue;
+            }
+        }
+
+        if let Some(regex) = tag_include.as_ref() {
+            if !regex.is_match(tag) {
+                continue;
+            }
+        }
+
         let time = caps.get(1).unwrap().as_str();
         let level = caps.get(2).unwrap().as_str();
-        let tag = caps.get(3).unwrap().as_str().trim();
         //let pid = caps.get(4).unwrap().as_str();
         let msg = caps.get(5).unwrap().as_str();
 

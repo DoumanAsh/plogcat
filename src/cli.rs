@@ -68,7 +68,7 @@ impl core::str::FromStr for App {
 ///Colorful wrapper over adb logcat command
 pub struct Cli {
     #[arg(long)]
-    ///Filter output by currently running application.
+    ///Filter output by currently running application. Used if `app` option is not provided.
     pub current: bool,
 
     #[arg(short, long)]
@@ -79,9 +79,17 @@ pub struct Cli {
     ///Whether to include time. Default: false.
     pub time: bool,
 
-    #[arg(short, long)]
+    #[arg(long)]
     ///Specifies tag width. Default: 23.
     pub tag_width: usize,
+
+    #[arg(short, long)]
+    ///List of tags to include into output.
+    pub tag: Vec<String>,
+
+    #[arg(short, long)]
+    ///List of tags to exclude from output.
+    pub ignored_tag: Vec<String>,
 
     #[arg(long)]
     ///Package name or pid by which to filter logcat
