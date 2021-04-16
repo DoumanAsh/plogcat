@@ -80,6 +80,56 @@ pub struct Cli {
     pub app: Option<App>,
 }
 
+impl Cli {
+    pub fn set_current_app(&mut self) -> Result<(), u8> {
+        use crate::errors::{DUMPSYS_FAIL, ADB_FAIL, UTF8_ERROR};
+
+        let adb = std::process::Command::new("adb").arg("shell").arg("dumpsys").arg("activity").arg("activities").output();
+        let output = match adb {
+            Ok(output) => match output.status.success() {
+                true => output,
+                false => {
+                    eprintln!("Unable to find current app in dympsys");
+                    return Err(DUMPSYS_FAIL);
+                },
+            },
+            Err(error) => {
+                eprintln!("Failed to lookup current app: {}", error);
+                return Err(ADB_FAIL);
+            }
+        };
+        let output = match core::str::from_utf8(&output.stdout) {
+            Ok(output) => output,
+            Err(_) => {
+                eprintln!("stdout output is not UTF-8");
+                return Err(UTF8_ERROR);
+            }
+        };
+
+        let regex = regex::Regex::new(".*TaskRecord.*A[= ]([^ ^}]*)").unwrap();
+        match regex.captures(output) {
+            Some(caps) => match caps.get(1) {
+                Some(cap) => match core::str::FromStr::from_str(cap.as_str()) {
+                    Ok(app) => {
+                        self.app = Some(app);
+                    },
+                    Err(_) => {
+                        println!(">Cannot find pid of currently running app '{}'", cap.as_str());
+                    },
+                },
+                None => {
+                    println!(">No app currently running");
+                }
+            },
+            None => {
+                println!(">No app currently running");
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub fn new(args: &c_ffi::Args) -> Result<Cli, u8> {
     match Cli::from_args(args.into_iter().skip(1)) {
         Ok(args) => Ok(args),

@@ -4,13 +4,11 @@ use std::io::{Write, BufRead};
 use termcolor::WriteColor;
 
 mod cli;
+mod errors;
 
 c_ffi::c_main!(run);
 
 const OUTPUT_SEP: &str = " ";
-const DUMPSYS_FAIL: u8 = 2;
-const ADB_FAIL: u8 = 3;
-const UTF8_ERROR: u8 = 4;
 
 fn run(args: c_ffi::Args) -> u8 {
     let mut args = match cli::new(&args) {
@@ -27,46 +25,8 @@ fn run(args: c_ffi::Args) -> u8 {
 
     if args.app.is_none() && args.current {
         println!(">Pid not specified, find currently run app");
-        let adb = std::process::Command::new("adb").arg("shell").arg("dumpsys").arg("activity").arg("activities").output();
-        let output = match adb {
-            Ok(output) => match output.status.success() {
-                true => output,
-                false => {
-                    eprintln!("Unable to find current app in dympsys");
-                    return DUMPSYS_FAIL;
-                },
-            },
-            Err(error) => {
-                eprintln!("Failed to lookup current app: {}", error);
-                return ADB_FAIL;
-            }
-        };
-        let output = match core::str::from_utf8(&output.stdout) {
-            Ok(output) => output,
-            Err(_) => {
-                eprintln!("stdout output is not UTF-8");
-                return UTF8_ERROR;
-            }
-        };
-
-        let regex = regex::Regex::new(".*TaskRecord.*A[= ]([^ ^}]*)").unwrap();
-        match regex.captures(output) {
-            Some(caps) => match caps.get(1) {
-                Some(cap) => match core::str::FromStr::from_str(cap.as_str()) {
-                    Ok(app) => {
-                        args.app = Some(app);
-                    },
-                    Err(_) => {
-                        println!(">Cannot find pid of currently running app '{}'", cap.as_str());
-                    },
-                },
-                None => {
-                    println!(">No app currently running");
-                }
-            },
-            None => {
-                println!(">No app currently running");
-            }
+        if let Err(error) = args.set_current_app() {
+            return error
         }
     }
 
@@ -83,7 +43,7 @@ fn run(args: c_ffi::Args) -> u8 {
         Ok(adb) => adb,
         Err(error) => {
             eprintln!("Failed to start adb: {}", error);
-            return ADB_FAIL;
+            return errors::ADB_FAIL;
         }
     };
 
@@ -130,7 +90,7 @@ fn run(args: c_ffi::Args) -> u8 {
 
         let level = caps.get(1).unwrap().as_str();
         let tag = caps.get(2).unwrap().as_str().trim();
-        let pid = caps.get(3).unwrap().as_str();
+        //let pid = caps.get(3).unwrap().as_str();
         let msg = caps.get(4).unwrap().as_str();
 
         let _ = write!(&mut term, "{:width$}", tag, width=args.tag_width);
@@ -195,5 +155,5 @@ fn run(args: c_ffi::Args) -> u8 {
         }
     }
 
-    0
+    //0
 }
