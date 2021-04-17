@@ -59,7 +59,7 @@ pub struct Cli {
     pub app: Option<App>,
 
     #[arg(short, long)]
-    ///Load an alternate log buffer.
+    ///Load alternate log buffer.
     pub buffer: Vec<String>,
 
     #[arg(long)]
@@ -70,7 +70,7 @@ pub struct Cli {
     ///Clears logcat content before running.
     pub clear: bool,
 
-    #[arg(short)]
+    #[arg(long)]
     ///Specifies to use USB connected device.
     pub device: bool,
 
@@ -78,7 +78,7 @@ pub struct Cli {
     ///Dumps current log and exits.
     pub dump: bool,
 
-    #[arg(short)]
+    #[arg(long)]
     ///Specifies to use TCP/IP connected device.
     pub emulator: bool,
 
@@ -97,6 +97,10 @@ pub struct Cli {
     #[arg(short, long, default_value)]
     ///Specifies minimum Android log level to include. Default Verbose.
     pub level: Level,
+
+    #[arg(short = "L", long)]
+    ///Dumps logs prior to the last reboot.
+    pub last: bool,
 
     #[arg(short, long)]
     ///Print only provided number of lines and exits.
@@ -261,6 +265,10 @@ impl Cli {
 
         if self.dump {
             adb.arg("-d");
+        }
+
+        if self.last {
+            adb.arg("-L");
         }
 
         adb
