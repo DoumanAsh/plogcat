@@ -54,6 +54,10 @@ impl core::str::FromStr for App {
 ///plogcat 1.0.0
 ///Colorful wrapper over adb logcat command
 pub struct Cli {
+    #[arg(short, long)]
+    ///Load an alternate log buffer.
+    pub buffer: Vec<String>,
+
     #[arg(long)]
     ///Filter output by currently running application. Used if `app` option is not provided.
     pub current: bool,
@@ -227,6 +231,12 @@ impl Cli {
     pub fn get_logcat_cmd(&self) -> std::process::Command {
         let mut adb = self.get_adb_cmd();
         adb.arg("logcat");
+
+        for buffer in self.buffer.iter() {
+            adb.arg("-b");
+            adb.arg(&buffer);
+        }
+
         adb
     }
 
