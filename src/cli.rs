@@ -94,6 +94,10 @@ pub struct Cli {
     ///Specifies device's serial number.
     pub serial: Option<String>,
 
+    #[arg(short = "e", long)]
+    ///Makes regex against which to match log lines.
+    pub regex: Vec<String>,
+
     #[arg(short)]
     ///Specifies to use USB connected device.
     pub device: bool,
@@ -243,6 +247,11 @@ impl Cli {
         for buffer in self.buffer.iter() {
             adb.arg("-b");
             adb.arg(&buffer);
+        }
+
+        for regex in self.regex.iter() {
+            adb.arg("-e");
+            adb.arg(&regex);
         }
 
         if let Some(max_count) = self.max_count {
