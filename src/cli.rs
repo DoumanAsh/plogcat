@@ -83,6 +83,10 @@ pub struct Cli {
     pub level: Level,
 
     #[arg(short, long)]
+    ///Tells to print only number of lines, before exiting.
+    pub max_count: Option<core::num::NonZeroU64>,
+
+    #[arg(short, long)]
     ///Specifies device's serial number.
     pub serial: Option<String>,
 
@@ -235,6 +239,11 @@ impl Cli {
         for buffer in self.buffer.iter() {
             adb.arg("-b");
             adb.arg(&buffer);
+        }
+
+        if let Some(max_count) = self.max_count {
+            adb.arg("-m");
+            adb.arg(&format!("{}", max_count));
         }
 
         adb
