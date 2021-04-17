@@ -84,6 +84,10 @@ fn run(args: c_ffi::Args) -> u8 {
         None => 0,
     };
 
+    if let Some(filter) = args.get_filter_spec() {
+        adb.arg(&filter);
+    }
+
     let adb = match adb.spawn() {
         Ok(adb) => adb,
         Err(error) => {
@@ -119,6 +123,21 @@ fn run(args: c_ffi::Args) -> u8 {
     let mut msg_buffer = String::new();
     let mut line = String::new();
     loop {
+        match adb.try_wait() {
+            Ok(Some(status)) => {
+                adb.into_inner();
+                break match status.success() {
+                    true => 0,
+                    false => errors::ADB_FAIL,
+                };
+            },
+            Ok(None) => (),
+            Err(error) => {
+                eprintln!("Cannot poll adb process: {}", error);
+                break errors::ADB_FAIL;
+            }
+        }
+
         line.clear();
         if let Err(error) = stdout.read_line(&mut line) {
             eprintln!("Failed to read={}", error);

@@ -1,6 +1,38 @@
 use arg::Args;
 
 #[derive(Debug)]
+pub struct Level(char);
+
+impl core::str::FromStr for Level {
+    type Err = ();
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        if text.eq_ignore_ascii_case("v") || text.eq_ignore_ascii_case("verbose") {
+            Ok(Level('V'))
+        } else if text.eq_ignore_ascii_case("d") || text.eq_ignore_ascii_case("debug") {
+            Ok(Level('D'))
+        } else if text.eq_ignore_ascii_case("i") || text.eq_ignore_ascii_case("info") {
+            Ok(Level('I'))
+        } else if text.eq_ignore_ascii_case("w") || text.eq_ignore_ascii_case("warning") {
+            Ok(Level('W'))
+        } else if text.eq_ignore_ascii_case("e") || text.eq_ignore_ascii_case("error") {
+            Ok(Level('E'))
+        } else if text.eq_ignore_ascii_case("f") || text.eq_ignore_ascii_case("fatal") {
+            Ok(Level('F'))
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl Default for Level {
+    #[inline(always)]
+    fn default() -> Self {
+        Level('V')
+    }
+}
+
+#[derive(Debug)]
 pub enum App {
     Pid(u64),
     PackageName(String),
@@ -41,6 +73,10 @@ pub struct Cli {
     #[arg(short, long)]
     ///List of tags to include into output.
     pub tag: Vec<String>,
+
+    #[arg(short, long, default_value)]
+    ///Specifies minimum Android log level to include. Default Verbose.
+    pub level: Level,
 
     #[arg(short, long)]
     ///Specifies device's serial number.
@@ -192,6 +228,14 @@ impl Cli {
         let mut adb = self.get_adb_cmd();
         adb.arg("logcat");
         adb
+    }
+
+    pub fn get_filter_spec(&self) -> Option<String> {
+        if self.level.0 == 'V' {
+            None
+        } else {
+            Some(format!("*:{}", self.level.0))
+        }
     }
 }
 
