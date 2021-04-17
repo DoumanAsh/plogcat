@@ -20,8 +20,7 @@ fn run(args: c_ffi::Args) -> u8 {
         args.tag_width = 23;
     }
 
-    let mut adb = std::process::Command::new("adb");
-    adb.arg("logcat");
+    let mut adb = args.get_logcat_cmd();
 
     if args.app.is_none() && args.current {
         println!(">Pid not specified, find currently run app");
@@ -30,9 +29,13 @@ fn run(args: c_ffi::Args) -> u8 {
         }
     }
 
-    if let Some(pid) = args.app {
-        println!(">Filtering by pid {}", pid.0);
-        adb.arg(&format!("--pid={}", pid.0));
+    match args.get_app_pid() {
+        Ok(Some(pid)) => {
+            println!(">Filtering by pid {}", pid);
+            adb.arg(&format!("--pid={}", pid));
+        },
+        Ok(None) => (),
+        Err(err) => return err,
     }
 
     adb.stdout(std::process::Stdio::piped());
@@ -40,9 +43,10 @@ fn run(args: c_ffi::Args) -> u8 {
     adb.arg("time");
 
     if args.clear {
-        let mut adb = std::process::Command::new("adb");
-        adb.arg("logcat");
+        let mut adb = args.get_logcat_cmd();
         adb.arg("-c");
+
+
         if let Err(error) = adb.status() {
             eprintln!("Failed to execute adb -c: {}", error);
             return errors::ADB_FAIL

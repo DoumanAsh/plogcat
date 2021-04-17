@@ -1,65 +1,20 @@
 use arg::Args;
 
 #[derive(Debug)]
-pub struct App(pub u64);
+pub enum App {
+    Pid(u64),
+    PackageName(String),
+}
 
 impl core::str::FromStr for App {
     type Err = ();
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        const CANNOT_FIND: &str = "Cannot find application by provided name";
-        const PS_SPACE: &[char] = &[' ', '\t'];
-        use std::process::Command;
-
-        let mut cmd = Command::new("adb");
-
-        cmd.arg("shell").arg("ps");
-
         if let Ok(pid) = text.parse() {
-            return Ok(App(pid));
+            Ok(App::Pid(pid))
+        } else {
+            return Ok(App::PackageName(text.to_owned()))
         }
-
-        let output = match cmd.output() {
-            Ok(output) => output,
-            Err(_) => {
-                eprintln!("{}", CANNOT_FIND);
-                return Err(());
-            }
-        };
-
-        if output.status.success() {
-            if let Ok(stdout) = core::str::from_utf8(&output.stdout) {
-                let mut result = None;
-
-                for line in stdout.lines() {
-                    if line.contains(text) {
-                        let mut parts = line.split(PS_SPACE);
-                        //Skip user
-                        parts.next();
-                        let mut pid = None;
-                        for part in parts {
-                            let part = part.trim();
-                            if !part.is_empty() {
-                                pid = Some(part);
-                                break;
-                            }
-                        }
-
-                        if let Some(pid) = pid {
-                            result = pid.parse().ok();
-                            break;
-                        }
-                    }
-                }
-
-                if let Some(result) = result {
-                    return Ok(result)
-                }
-            }
-        }
-
-        eprintln!("{}", CANNOT_FIND);
-        Err(())
     }
 }
 
@@ -86,6 +41,18 @@ pub struct Cli {
     #[arg(short, long)]
     ///List of tags to include into output.
     pub tag: Vec<String>,
+
+    #[arg(short, long)]
+    ///Specifies device's serial number.
+    pub serial: Option<String>,
+
+    #[arg(short)]
+    ///Specifies to use USB connected device.
+    pub device: bool,
+
+    #[arg(short)]
+    ///Specifies to use TCP/IP connected device.
+    pub emulator: bool,
 
     #[arg(short, long)]
     ///List of tags to exclude from output.
@@ -143,6 +110,88 @@ impl Cli {
         }
 
         Ok(())
+    }
+
+    pub fn get_app_pid(&self) -> Result<Option<u64>, u8> {
+        const CANNOT_FIND: &str = "Cannot find application by provided name";
+        const PS_SPACE: &[char] = &[' ', '\t'];
+
+        let name = match self.app.as_ref() {
+            Some(App::Pid(pid)) => return Ok(Some(*pid)),
+            None => return Ok(None),
+            Some(App::PackageName(name)) => name.as_str(),
+        };
+
+        let mut cmd = self.get_adb_cmd();
+
+        cmd.arg("shell").arg("ps");
+
+        let output = match cmd.output() {
+            Ok(output) => output,
+            Err(_) => {
+                eprintln!("{}", CANNOT_FIND);
+                return Err(crate::errors::ADB_FAIL);
+            }
+        };
+
+        if output.status.success() {
+            if let Ok(stdout) = core::str::from_utf8(&output.stdout) {
+                let mut result = None;
+
+                for line in stdout.lines() {
+                    if line.contains(name) {
+                        let mut parts = line.split(PS_SPACE);
+                        //Skip user
+                        parts.next();
+                        let mut pid = None;
+                        for part in parts {
+                            let part = part.trim();
+                            if !part.is_empty() {
+                                pid = Some(part);
+                                break;
+                            }
+                        }
+
+                        if let Some(pid) = pid {
+                            result = pid.parse().ok();
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(result) = result {
+                    return Ok(Some(result))
+                }
+            }
+        }
+
+        eprintln!("{}", CANNOT_FIND);
+        Err(1)
+    }
+
+    pub fn get_adb_cmd(&self) -> std::process::Command {
+        let mut adb = std::process::Command::new("adb");
+
+        if let Some(serial) = self.serial.as_ref() {
+            adb.arg("-s");
+            adb.arg(serial);
+        }
+
+        if self.device {
+            adb.arg("-d");
+        }
+
+        if self.emulator {
+            adb.arg("-e");
+        }
+
+        adb
+    }
+
+    pub fn get_logcat_cmd(&self) -> std::process::Command {
+        let mut adb = self.get_adb_cmd();
+        adb.arg("logcat");
+        adb
     }
 }
 
