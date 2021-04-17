@@ -54,21 +54,33 @@ impl core::str::FromStr for App {
 ///plogcat 1.0.0
 ///Colorful wrapper over adb logcat command
 pub struct Cli {
+    #[arg(long)]
+    ///Package name or pid by which to filter logcat
+    pub app: Option<App>,
+
     #[arg(short, long)]
     ///Load an alternate log buffer.
     pub buffer: Vec<String>,
 
     #[arg(long)]
-    ///Filter output by currently running application. Used if `app` option is not provided.
+    ///Filter output by currently running application, if `app` is not set.
     pub current: bool,
 
     #[arg(short, long)]
     ///Clears logcat content before running.
     pub clear: bool,
 
+    #[arg(short)]
+    ///Specifies to use USB connected device.
+    pub device: bool,
+
     #[arg(short, long)]
     ///Dumps current log and exits.
     pub dump: bool,
+
+    #[arg(short)]
+    ///Specifies to use TCP/IP connected device.
+    pub emulator: bool,
 
     #[arg(long)]
     ///Whether to include time. Default: false.
@@ -87,7 +99,7 @@ pub struct Cli {
     pub level: Level,
 
     #[arg(short, long)]
-    ///Tells to print only number of lines, before exiting.
+    ///Print only provided number of lines and exits.
     pub max_count: Option<core::num::NonZeroU64>,
 
     #[arg(short, long)]
@@ -98,21 +110,9 @@ pub struct Cli {
     ///Makes regex against which to match log lines.
     pub regex: Vec<String>,
 
-    #[arg(short)]
-    ///Specifies to use USB connected device.
-    pub device: bool,
-
-    #[arg(short)]
-    ///Specifies to use TCP/IP connected device.
-    pub emulator: bool,
-
     #[arg(short, long)]
     ///List of tags to exclude from output.
     pub ignored_tag: Vec<String>,
-
-    #[arg(long)]
-    ///Package name or pid by which to filter logcat
-    pub app: Option<App>,
 }
 
 impl Cli {
