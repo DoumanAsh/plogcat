@@ -66,6 +66,10 @@ pub struct Cli {
     ///Clears logcat content before running.
     pub clear: bool,
 
+    #[arg(short, long)]
+    ///Dumps current log and exits.
+    pub dump: bool,
+
     #[arg(long)]
     ///Whether to include time. Default: false.
     pub time: bool,
@@ -244,6 +248,10 @@ impl Cli {
         if let Some(max_count) = self.max_count {
             adb.arg("-m");
             adb.arg(&format!("{}", max_count));
+        }
+
+        if self.dump {
+            adb.arg("-d");
         }
 
         adb
