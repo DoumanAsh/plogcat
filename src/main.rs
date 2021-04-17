@@ -3,9 +3,7 @@
 use std::io::{Write, BufRead};
 use termcolor::WriteColor;
 
-mod cli;
-mod errors;
-mod regex;
+pub use plogcat::*;
 
 c_ffi::c_main!(run);
 
@@ -111,6 +109,9 @@ fn run(args: c_ffi::Args) -> u8 {
     if args.time {
         header_size += TIME_LEN + 3 //time + brackets with space
     }
+
+    let mut tag_colors = color::Stack::new();
+
     let mut msg_buffer = String::new();
     let mut line = String::new();
     loop {
@@ -146,7 +147,13 @@ fn run(args: c_ffi::Args) -> u8 {
         //let pid = caps.get(4).unwrap().as_str();
         let msg = caps.get(5).unwrap().as_str();
 
+        let mut tag_color = termcolor::ColorSpec::new();
+        tag_color.set_fg(Some(tag_colors.get_color(tag)));
+
+        let _ = term.set_color(&tag_color);
         let _ = write!(&mut term, "{:width$}", tag, width=args.tag_width);
+        let _ = term.reset();
+
         let _ = write!(&mut term, "{}", OUTPUT_SEP);
 
         let mut level_color = termcolor::ColorSpec::new();
