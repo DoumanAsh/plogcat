@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub struct Stack {
-    colors: [termcolor::Color; 6],
+    colors: [termcolor::Color; 5],
     tags: HashMap<String, termcolor::Color>,
 }
 
@@ -9,7 +9,7 @@ impl Stack {
     pub fn new() -> Self {
         Self {
             tags: Default::default(),
-            colors: [termcolor::Color::Red, termcolor::Color::Green,
+            colors: [termcolor::Color::Green,
                      termcolor::Color::Yellow, termcolor::Color::Blue,
                      termcolor::Color::Magenta, termcolor::Color::Cyan],
         }
@@ -19,11 +19,17 @@ impl Stack {
         match self.tags.get(tag) {
             Some(color) => *color,
             None => {
-                let color = self.colors[0];
+                let color = if tag.contains("error") || tag.contains("Error") {
+                    termcolor::Color::Red
+                } else {
+                    let color = self.colors[0];
 
-                for idx in 0..(self.colors.len()-1) {
-                    self.colors.swap(idx, idx+1);
-                }
+                    for idx in 0..(self.colors.len()-1) {
+                        self.colors.swap(idx, idx+1);
+                    }
+
+                    color
+                };
 
                 self.tags.insert(tag.to_owned(), color);
                 color
