@@ -45,21 +45,20 @@ mod tests {
     #[test]
     fn verify_color_stack_shift() {
         let mut stack = Stack::new();
-        assert_eq!(stack.get_color("1"), termcolor::Color::Red);
-        assert_eq!(stack.get_color("2"), termcolor::Color::Green);
-        assert_eq!(stack.get_color("3"), termcolor::Color::Yellow);
-        assert_eq!(stack.get_color("4"), termcolor::Color::Blue);
-        assert_eq!(stack.get_color("5"), termcolor::Color::Magenta);
-        assert_eq!(stack.get_color("6"), termcolor::Color::Cyan);
-        assert_eq!(stack.get_color("7"), termcolor::Color::Red);
+        assert_eq!(stack.get_color("1"), termcolor::Color::Green);
+        assert_eq!(stack.get_color("2"), termcolor::Color::Yellow);
+        assert_eq!(stack.get_color("3"), termcolor::Color::Blue);
+        assert_eq!(stack.get_color("4"), termcolor::Color::Magenta);
+        assert_eq!(stack.get_color("5"), termcolor::Color::Cyan);
+        assert_eq!(stack.get_color("6"), termcolor::Color::Green);
     }
 
     #[test]
     fn verify_cached_color() {
         let mut stack = Stack::new();
-        assert_eq!(stack.get_color("1"), termcolor::Color::Red);
-        assert_eq!(stack.get_color("2"), termcolor::Color::Green);
-        assert_eq!(stack.get_color("1"), termcolor::Color::Red);
-        assert_eq!(stack.get_color("2"), termcolor::Color::Green);
+        assert_eq!(stack.get_color("1"), termcolor::Color::Green);
+        assert_eq!(stack.get_color("2"), termcolor::Color::Yellow);
+        assert_eq!(stack.get_color("1"), termcolor::Color::Green);
+        assert_eq!(stack.get_color("2"), termcolor::Color::Yellow);
     }
 }
