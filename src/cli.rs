@@ -54,10 +54,6 @@ impl core::str::FromStr for App {
 ///plogcat 1.0.0
 ///Colorful wrapper over adb logcat command
 pub struct Cli {
-    #[arg(long)]
-    ///Package name or pid by which to filter logcat
-    pub app: Option<App>,
-
     #[arg(short, long)]
     ///Load alternate log buffer.
     pub buffer: Vec<String>,
@@ -117,6 +113,9 @@ pub struct Cli {
     #[arg(short, long)]
     ///List of tags to exclude from output.
     pub ignored_tag: Vec<String>,
+
+    ///Package name or pid by which to filter logcat
+    pub app: Option<App>,
 }
 
 impl Cli {
