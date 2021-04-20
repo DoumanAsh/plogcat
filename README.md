@@ -20,14 +20,15 @@ OPTIONS:
     -d,  --dump                          Dumps current log and exits.
          --emulator                      Specifies to use TCP/IP connected device.
          --time                          Whether to include time. Default: false.
-         --tag_width <tag_width>         Specifies tag width. Default: 23.
+         --tag-width <tag_width>         Specifies tag width. Default: 23.
     -t,  --tag <tag>...                  List of tags to include into output.
     -l,  --level <level>                 Specifies minimum Android log level to include. Default Verbose.
     -L,  --last                          Dumps logs prior to the last reboot.
+         --machine                       Strips output of color, making it more suitable for parsing.
     -m,  --max_count <max_count>         Print only provided number of lines and exits.
     -s,  --serial <serial>               Specifies device's serial number.
     -e,  --regex <regex>...              Makes regex against which to match log lines.
-    -i,  --ignored_tag <ignored_tag>...  List of tags to exclude from output.
+    -i,  --ignored-tag <ignored_tag>...  List of tags to exclude from output.
 
 ARGS:
     [app]  Package name or pid by which to filter logcat

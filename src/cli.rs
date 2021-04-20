@@ -82,7 +82,7 @@ pub struct Cli {
     ///Whether to include time. Default: false.
     pub time: bool,
 
-    #[arg(long)]
+    #[arg(long = "tag-width")]
     ///Specifies tag width. Default: 23.
     pub tag_width: usize,
 
@@ -98,6 +98,10 @@ pub struct Cli {
     ///Dumps logs prior to the last reboot.
     pub last: bool,
 
+    #[arg(long)]
+    ///Strips output of color, making it more suitable for parsing.
+    pub machine: bool,
+
     #[arg(short, long)]
     ///Print only provided number of lines and exits.
     pub max_count: Option<core::num::NonZeroU64>,
@@ -110,7 +114,7 @@ pub struct Cli {
     ///Makes regex against which to match log lines.
     pub regex: Vec<String>,
 
-    #[arg(short, long)]
+    #[arg(short, long = "ignored-tag")]
     ///List of tags to exclude from output.
     pub ignored_tag: Vec<String>,
 

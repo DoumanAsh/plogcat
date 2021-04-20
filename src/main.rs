@@ -78,7 +78,11 @@ fn run(args: c_ffi::Args) -> u8 {
     };
 
     let log_re = regex::Regex::new(r#"^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$"#).unwrap();
-    let term = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
+    let color_choice = match args.machine {
+        false => termcolor::ColorChoice::Auto,
+        true => termcolor::ColorChoice::Never,
+    };
+    let term = termcolor::StandardStream::stdout(color_choice);
     let term_width = match term_size::dimensions() {
         Some((width, _)) => width,
         None => 0,
