@@ -1,4 +1,5 @@
 #![no_main]
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
 
 use std::io::{Write, BufRead};
 use termcolor::WriteColor;
