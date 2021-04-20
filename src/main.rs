@@ -116,8 +116,8 @@ fn run(args: c_ffi::Args) -> u8 {
     let mut stdout = std::io::BufReader::new(stdout);
     let mut term = term.lock();
 
-    //                    tag + spaces + level
-    let mut header_size = args.tag_width + 2 + 1;
+    //                    tag + spaces + level + spaces
+    let mut header_size = args.tag_width + 2 + 1 + 2;
     if args.time {
         header_size += TIME_LEN + 3 //time + brackets with space
     }
@@ -178,7 +178,7 @@ fn run(args: c_ffi::Args) -> u8 {
         tag_color.set_fg(Some(tag_colors.get_color(tag)));
 
         let _ = term.set_color(&tag_color);
-        let _ = write!(&mut term, "{:width$}", tag, width=args.tag_width);
+        let _ = write!(&mut term, "{:>width$}", tag, width=args.tag_width);
         let _ = term.reset();
 
         let _ = write!(&mut term, "{}", OUTPUT_SEP);
@@ -215,8 +215,11 @@ fn run(args: c_ffi::Args) -> u8 {
         }
 
         let _ = term.set_color(&level_color);
+        let _ = write!(&mut term, "{}", OUTPUT_SEP);
         let _ = write!(&mut term, "{}", level);
+        let _ = write!(&mut term, "{}", OUTPUT_SEP);
         let _ = term.reset();
+
         let _ = write!(&mut term, "{}", OUTPUT_SEP);
 
         if term_width < header_size {
