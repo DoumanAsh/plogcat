@@ -15,6 +15,7 @@ include = [
 arg = "0.3"
 c-ffi = "0.4"
 regex = "1.4"
+time = "0.2"
 
 termcolor = "1"
 term_size = "0.3"

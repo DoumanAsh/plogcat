@@ -50,6 +50,134 @@ impl core::str::FromStr for App {
     }
 }
 
+#[derive(Debug)]
+pub struct Time(pub time::OffsetDateTime);
+
+
+impl Time {
+    #[inline]
+    fn duration_offset(diff: time::Duration) -> Self {
+        let now = time::OffsetDateTime::try_now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+        Self(now - diff)
+    }
+
+    #[inline]
+    fn time_offset(diff: time::Time) -> Self {
+        let now = time::OffsetDateTime::try_now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+        let now_date = now.date();
+        let now_time = now.time();
+        let diff = time::PrimitiveDateTime::new(now_date, now_time) - time::PrimitiveDateTime::new(now_date, diff);
+        Self::duration_offset(diff)
+    }
+
+    fn parse_adb_format(text: &str) -> Result<Self, ()> {
+        let mut split = text.split(' ');
+
+        let date = split.next().unwrap();
+        let time = if let Some(time) = split.next() {
+            time
+        } else {
+            return Err(())
+        };
+
+        let date_split = date.split('-').collect::<Vec<_>>();
+        if date_split.len() > 3 {
+            return Err(());
+        }
+
+        let mut month_idx = 0;
+        let year = if date_split.len() == 2 {
+            time::OffsetDateTime::try_now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc()).year()
+        } else if let Ok(year) = date_split[0].parse(){
+            month_idx = 1;
+            year
+        } else {
+            return Err(());
+        };
+
+        let month = if let Ok(month) = date_split[month_idx].parse() {
+            month
+        } else {
+            return Err(());
+        };
+
+        let day = if let Ok(day) = date_split[month_idx + 1].parse() {
+            day
+        } else {
+            return Err(());
+        };
+
+        let date = match time::Date::try_from_ymd(year, month, day) {
+            Ok(date) => date,
+            Err(_) => return Err(()),
+        };
+
+        let mut time_split = time.split(':');
+        let hour = match time_split.next().and_then(|hour| hour.parse().ok()) {
+            Some(hour) => hour,
+            None => return Err(()),
+        };
+        let minute = match time_split.next().and_then(|minute| minute.parse().ok()) {
+            Some(minute) => minute,
+            None => return Err(()),
+        };
+        let second = match time_split.next().and_then(|second| second.parse().ok()) {
+            Some(second) => second,
+            None => return Err(()),
+        };
+
+        let time = match time::Time::try_from_hms(hour, minute, second) {
+            Ok(time) => time,
+            Err(_) => return Err(()),
+        };
+
+        let offset = time::UtcOffset::try_current_local_offset().unwrap_or(time::UtcOffset::UTC);
+        Ok(Self(time::PrimitiveDateTime::new(date, time).assume_offset(offset)))
+    }
+}
+
+impl core::str::FromStr for Time {
+    type Err = ();
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        if text.ends_with('m') {
+            match text[..text.len()-1].parse().map(|min| time::Duration::minutes(min)) {
+                Ok(time) => Ok(Self::duration_offset(time)),
+                _ => Err(())
+            }
+        } else if text.ends_with('h') {
+            match text[..text.len()-1].parse().map(|min| time::Duration::hours(min)) {
+                Ok(time) => Ok(Self::duration_offset(time)),
+                _ => Err(())
+            }
+        } else if text.ends_with('s') {
+            match text[..text.len()-1].parse().map(|min| time::Duration::seconds(min)) {
+                Ok(time) => Ok(Self::duration_offset(time)),
+                _ => Err(())
+            }
+        } else if let Ok(time) = time::Time::parse(text, "%H:%M:%S") {
+            Ok(Self::time_offset(time))
+        } else if let Ok(time) = time::OffsetDateTime::parse(text, "%Y-%m-%d %H:%M:%S") {
+            Ok(Time(time))
+        } else if let Ok(time) = time::OffsetDateTime::parse(text, time::Format::Rfc3339) {
+            Ok(Time(time))
+        } else if let Ok(time) = Time::parse_adb_format(text) {
+            Ok(time)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl core::ops::Deref for Time {
+    type Target = time::OffsetDateTime;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Args, Debug)]
 ///plogcat 1.0.0
 ///Colorful wrapper over adb logcat command
@@ -113,6 +241,10 @@ pub struct Cli {
     #[arg(short = "e", long)]
     ///Makes regex against which to match log lines.
     pub regex: Vec<String>,
+
+    #[arg(long = "time-limit")]
+    ///Prints within time range from specified time to the current time.
+    pub time_limit: Option<Time>,
 
     #[arg(short, long = "ignored-tag")]
     ///List of tags to exclude from output.
@@ -272,6 +404,11 @@ impl Cli {
 
         if self.last {
             adb.arg("-L");
+        }
+
+        if let Some(ref time_limit) = self.time_limit {
+            adb.arg("-T");
+            adb.arg(&time_limit.0.format("%Y-%m-%d %H:%M:%S.0"));
         }
 
         adb

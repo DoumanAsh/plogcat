@@ -151,6 +151,7 @@ fn run(args: c_ffi::Args) -> u8 {
         if line.contains("nativeGetEnabledTags") {
             continue;
         }
+
         let caps = match log_re.captures(&line.trim()) {
             Some(caps) if caps.len() == 6 => caps,
             Some(_) | None => continue,
