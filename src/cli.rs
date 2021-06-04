@@ -71,6 +71,8 @@ impl Time {
     }
 
     fn parse_adb_format(text: &str) -> Result<Self, ()> {
+        use core::convert::TryInto;
+
         let mut split = text.split(' ');
 
         let date = split.next().unwrap();
@@ -121,7 +123,8 @@ impl Time {
             Some(minute) => minute,
             None => return Err(()),
         };
-        let second = match time_split.next().and_then(|second| second.parse().ok()) {
+        let second = match time_split.next().and_then(|second| second.parse::<f64>().ok())
+                                            .and_then(|second| (second.trunc() as u64).try_into().ok()) {
             Some(second) => second,
             None => return Err(()),
         };
