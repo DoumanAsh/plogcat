@@ -140,17 +140,17 @@ impl core::str::FromStr for Time {
     type Err = ();
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        if text.ends_with('m') {
+        if let Some(text) = text.strip_suffix('m') {
             match text[..text.len()-1].parse().map(|min| time::Duration::minutes(min)) {
                 Ok(time) => Ok(Self::duration_offset(time)),
                 _ => Err(())
             }
-        } else if text.ends_with('h') {
+        } else if let Some(text) = text.strip_suffix('h') {
             match text[..text.len()-1].parse().map(|min| time::Duration::hours(min)) {
                 Ok(time) => Ok(Self::duration_offset(time)),
                 _ => Err(())
             }
-        } else if text.ends_with('s') {
+        } else if let Some(text) = text.strip_suffix('s') {
             match text[..text.len()-1].parse().map(|min| time::Duration::seconds(min)) {
                 Ok(time) => Ok(Self::duration_offset(time)),
                 _ => Err(())
