@@ -28,6 +28,7 @@ OPTIONS:
     -m,  --max_count <max_count>         Print only provided number of lines and exits.
     -s,  --serial <serial>               Specifies device's serial number.
     -e,  --regex <regex>...              Makes regex against which to match log lines.
+         --time-limit <time_limit>       Prints within time range from specified time to the current time.
     -i,  --ignored-tag <ignored_tag>...  List of tags to exclude from output.
 
 ARGS:
