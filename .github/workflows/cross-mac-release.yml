@@ -8,11 +8,11 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     strategy:
       matrix:
-        target: [x86_64-unknown-linux-musl, armv7-unknown-linux-musleabihf]
+        target: [aarch64-apple-darwin]
 
     steps:
     - uses: actions/checkout@v1
@@ -31,14 +31,16 @@ jobs:
         cargo --version
         rustc --version
 
-    - name: Install cross
-      run: cargo install cross
+    - name: Available SDK
+      run: xcodebuild -showsdks
+
+    - name: Install rust target
+      run: rustup target add ${{matrix.target}}
 
     - name: Build release
-      run: cross build --release --target ${{matrix.target}}
+      run: SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.1 --show-sdk-platform-version)  cargo build --release --target ${{matrix.target}}
       env:
         RUSTFLAGS: '-C link-arg=-s'
-        LIBOPUS_STATIC: 1
 
     - name: Pack
       run: zip -j plogcat-${{matrix.target}}.zip target/${{matrix.target}}/release/plogcat

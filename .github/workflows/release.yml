@@ -51,7 +51,6 @@ jobs:
       run: cargo build --release
       env:
         RUSTFLAGS: '-C link-arg=-s'
-        LIBOPUS_STATIC: 1
 
     - name: Pack Unix
       if: runner.os != 'Windows'
