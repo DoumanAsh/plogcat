@@ -275,7 +275,7 @@ impl Cli {
                 return Err(ADB_FAIL);
             }
         };
-        let output = match core::str::from_utf8(&output.stdout) {
+        let mut output = match core::str::from_utf8(&output.stdout) {
             Ok(output) => output,
             Err(_) => {
                 eprintln!("stdout output is not UTF-8");
@@ -283,25 +283,32 @@ impl Cli {
             }
         };
 
-        let regex = regex::Regex::new(".*TaskRecord.*A[= ]([^ ^}]*)").unwrap();
-        match regex.captures(output) {
-            Some(caps) => match caps.get(1) {
-                Some(cap) => match core::str::FromStr::from_str(cap.as_str()) {
-                    Ok(app) => {
-                        self.app = Some(app);
-                    },
-                    Err(_) => {
-                        println!(">Cannot find pid of currently running app '{}'", cap.as_str());
-                    },
-                },
-                None => {
-                    println!(">No app currently running");
+        const TASK_RECORD: &str = "TaskRecord";
+        const APP_PREFIX: &str = " A=";
+        let app = loop {
+            if let Some(record_idx) = output.find(TASK_RECORD) {
+                if let Some(output) = output.get(record_idx + TASK_RECORD.len()..) {
+                    if let Some(app_name_idx) = output.find(APP_PREFIX) {
+                        if let Some(output) = output.get(app_name_idx + APP_PREFIX.len()..) {
+                            if let Some(limit) = output.find(' ') {
+                                break Some(App::PackageName(output[..limit].to_owned()));
+                            } else {
+                                break Some(App::PackageName(output.to_owned()));
+                            }
+                        }
+                    }
                 }
-            },
-            None => {
-                println!(">No app currently running");
+
+                output = &output[record_idx..];
+            } else {
+                break None;
             }
+        };
+
+        if app.is_none() {
+            println!(">No app currently running");
         }
+        self.app = app;
 
         Ok(())
     }

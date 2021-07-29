@@ -3,3 +3,5 @@
 pub mod cli;
 pub mod errors;
 pub mod color;
+mod parser;
+pub use parser::{parse, LogCatLine};

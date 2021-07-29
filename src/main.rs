@@ -67,7 +67,6 @@ fn run(args: c_ffi::Args) -> u8 {
         Some(args.ignored_tag.iter().map(String::as_ref).collect::<HashSet<_>>())
     };
 
-    let log_re = regex::Regex::new(r#"^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$"#).unwrap();
     let color_choice = match args.machine {
         false => termcolor::ColorChoice::Auto,
         true => termcolor::ColorChoice::Never,
@@ -141,12 +140,10 @@ fn run(args: c_ffi::Args) -> u8 {
             continue;
         }
 
-        let caps = match log_re.captures(&line.trim()) {
-            Some(caps) if caps.len() == 6 => caps,
-            Some(_) | None => continue,
+        let LogCatLine { time, level, tag, msg, .. } = match parse(&line) {
+            Some(line) => line,
+            None => continue,
         };
-
-        let tag = caps.get(3).unwrap().as_str().trim();
 
         if let Some(tag_exclude) = tag_exclude.as_ref() {
             if tag_exclude.contains(tag) {
@@ -159,11 +156,6 @@ fn run(args: c_ffi::Args) -> u8 {
                 continue;
             }
         }
-
-        let time = caps.get(1).unwrap().as_str();
-        let level = caps.get(2).unwrap().as_str();
-        //let pid = caps.get(4).unwrap().as_str();
-        let msg = caps.get(5).unwrap().as_str();
 
         let mut tag_color = termcolor::ColorSpec::new();
         tag_color.set_fg(Some(tag_colors.get_color(tag)));
