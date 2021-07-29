@@ -2,6 +2,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
 
 use std::io::{Write, BufRead};
+use std::collections::HashSet;
 use termcolor::WriteColor;
 
 pub use plogcat::*;
@@ -57,25 +58,13 @@ fn run(args: c_ffi::Args) -> u8 {
     let tag_include = if args.tag.is_empty() {
         None
     } else {
-        match regex::from_tag_list(&args.tag) {
-            Ok(regex) => Some(regex),
-            Err(error) => {
-                eprintln!("Cannot compile regex for includeed tags: {}", error);
-                return errors::INTERNAL;
-            }
-        }
+        Some(args.tag.iter().map(String::as_ref).collect::<HashSet<_>>())
     };
 
     let tag_exclude = if args.ignored_tag.is_empty() {
         None
     } else {
-        match regex::from_tag_list(&args.ignored_tag) {
-            Ok(regex) => Some(regex),
-            Err(error) => {
-                eprintln!("Cannot compile regex for ignored tags: {}", error);
-                return errors::INTERNAL;
-            }
-        }
+        Some(args.ignored_tag.iter().map(String::as_ref).collect::<HashSet<_>>())
     };
 
     let log_re = regex::Regex::new(r#"^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$"#).unwrap();
@@ -159,14 +148,14 @@ fn run(args: c_ffi::Args) -> u8 {
 
         let tag = caps.get(3).unwrap().as_str().trim();
 
-        if let Some(regex) = tag_exclude.as_ref() {
-            if regex.is_match(tag) {
+        if let Some(tag_exclude) = tag_exclude.as_ref() {
+            if tag_exclude.contains(tag) {
                 continue;
             }
         }
 
-        if let Some(regex) = tag_include.as_ref() {
-            if !regex.is_match(tag) {
+        if let Some(tag_include) = tag_include.as_ref() {
+            if !tag_include.contains(tag) {
                 continue;
             }
         }
