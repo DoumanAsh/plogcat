@@ -10,7 +10,8 @@ pub use plogcat::*;
 c_ffi::c_main!(run);
 
 const OUTPUT_SEP: &str = " ";
-const TIME_LEN: usize = 18; //"04-16 15:39:59.337"
+//const TIME_LEN: usize = 18; //"04-16 15:39:59.337"
+const TIME_LEN: usize = 12; //"15:39:59.337"
 
 fn run(args: c_ffi::Args) -> u8 {
     let mut args = match cli::new(&args) {
