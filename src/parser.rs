@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(result.time, "24:01:13.237");
         assert_eq!(result.level, "i");
         assert_eq!(result.tag, "flutter");
-        assert_eq!(result.msg, "my super log");
+        assert_eq!(result.msg, "     my super log");
     }
 
 }
