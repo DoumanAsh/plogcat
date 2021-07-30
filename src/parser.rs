@@ -74,7 +74,7 @@ pub fn parse<'a>(text: &'a str) -> Option<LogCatLine<'a>> {
         time,
         level,
         tag,
-        msg: cursor.trim(),
+        msg: cursor.trim_end(),
     })
 }
 
