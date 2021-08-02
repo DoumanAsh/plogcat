@@ -29,7 +29,7 @@ macro_rules! next_part {
 
 //^([0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+.[0-9]+)\s([A-Z])/(.+?)\( *(\d+)\): (.*?)$;
 ///Parses line from output of logcat -v time
-pub fn parse<'a>(text: &'a str) -> Option<LogCatLine<'a>> {
+pub fn parse(text: &str) -> Option<LogCatLine<'_>> {
     let mut cursor = text;
     let date = next_part!(cursor);
     let time = next_part!(cursor);
@@ -38,7 +38,7 @@ pub fn parse<'a>(text: &'a str) -> Option<LogCatLine<'a>> {
             cursor = &cursor[idx..];
 
             if let Some(msg_idx) = cursor.find(':') {
-                if let Some(msg) = cursor.get(msg_idx+1..) {
+                if let Some(msg) = cursor.get(msg_idx+2..) {
                     cursor = msg;
                 } else {
                     return None;
@@ -89,7 +89,14 @@ mod tests {
         assert_eq!(result.time, "24:01:13.237");
         assert_eq!(result.level, "i");
         assert_eq!(result.tag, "flutter");
-        assert_eq!(result.msg, "     my super log");
+        assert_eq!(result.msg, "    my super log");
+
+        let result = parse("12-02    24:01:13.237   i/flutter ( 666): my super log ").expect("To parse");
+        assert_eq!(result.date, "12-02");
+        assert_eq!(result.time, "24:01:13.237");
+        assert_eq!(result.level, "i");
+        assert_eq!(result.tag, "flutter");
+        assert_eq!(result.msg, "my super log");
     }
 
 }

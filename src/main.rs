@@ -1,17 +1,11 @@
 #![no_main]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
 
-use std::io::{Write, BufRead};
-use std::collections::HashSet;
-use termcolor::WriteColor;
+use std::io::BufRead;
 
 pub use plogcat::*;
 
 c_ffi::c_main!(run);
-
-const OUTPUT_SEP: &str = " ";
-//const TIME_LEN: usize = 18; //"04-16 15:39:59.337"
-const TIME_LEN: usize = 12; //"15:39:59.337"
 
 fn run(args: c_ffi::Args) -> u8 {
     let mut args = match cli::new(&args) {
@@ -56,27 +50,11 @@ fn run(args: c_ffi::Args) -> u8 {
         }
     }
 
-    let tag_include = if args.tag.is_empty() {
-        None
-    } else {
-        Some(args.tag.iter().map(String::as_ref).collect::<HashSet<_>>())
-    };
-
-    let tag_exclude = if args.ignored_tag.is_empty() {
-        None
-    } else {
-        Some(args.ignored_tag.iter().map(String::as_ref).collect::<HashSet<_>>())
-    };
-
     let color_choice = match args.machine {
         false => termcolor::ColorChoice::Auto,
         true => termcolor::ColorChoice::Never,
     };
     let term = termcolor::StandardStream::stdout(color_choice);
-    let term_width = match term_size::dimensions() {
-        Some((width, _)) => width,
-        None => 0,
-    };
 
     if let Some(filter) = args.get_filter_spec() {
         adb.arg(&filter);
@@ -104,17 +82,11 @@ fn run(args: c_ffi::Args) -> u8 {
         }
     };
     let mut stdout = std::io::BufReader::new(stdout);
-    let mut term = term.lock();
 
-    //                    tag + spaces + level + spaces
-    let mut header_size = args.tag_width + 2 + 1 + 2;
-    if args.time {
-        header_size += TIME_LEN + 3 //time + brackets with space
-    }
+    let mut plogcat = Plogcat::new(term.lock(), args.tag_width, args.time);
+    plogcat.tag_exclude = args.ignored_tag.iter().map(String::as_ref).collect();
+    plogcat.tag_include = args.tag.iter().map(String::as_ref).collect();
 
-    let mut tag_colors = color::Stack::new();
-
-    let mut msg_buffer = String::new();
     let mut line = String::new();
     loop {
         match adb.try_wait() {
@@ -137,124 +109,6 @@ fn run(args: c_ffi::Args) -> u8 {
             eprintln!("Failed to read={}", error);
         }
 
-        if line.contains("nativeGetEnabledTags") {
-            continue;
-        }
-
-        let LogCatLine { time, level, tag, msg, .. } = match parse(&line) {
-            Some(line) => line,
-            None => continue,
-        };
-
-        if let Some(tag_exclude) = tag_exclude.as_ref() {
-            if tag_exclude.contains(tag) {
-                continue;
-            }
-        }
-
-        if let Some(tag_include) = tag_include.as_ref() {
-            if !tag_include.contains(tag) {
-                continue;
-            }
-        }
-
-        let mut tag_color = termcolor::ColorSpec::new();
-        tag_color.set_fg(Some(tag_colors.get_color(tag)));
-
-        let _ = term.set_color(&tag_color);
-        let _ = write!(&mut term, "{:>width$}", tag, width=args.tag_width);
-        let _ = term.reset();
-
-        let _ = write!(&mut term, "{}", OUTPUT_SEP);
-
-        let mut level_color = termcolor::ColorSpec::new();
-
-        match level {
-            "V" => {
-                level_color.set_fg(Some(termcolor::Color::White));
-                level_color.set_bg(Some(termcolor::Color::Black));
-            },
-            "D" => {
-                level_color.set_fg(Some(termcolor::Color::Black));
-                level_color.set_bg(Some(termcolor::Color::Blue));
-            },
-            "I" => {
-                level_color.set_fg(Some(termcolor::Color::Black));
-                level_color.set_bg(Some(termcolor::Color::Green));
-            },
-            "W" => {
-                level_color.set_fg(Some(termcolor::Color::Black));
-                level_color.set_bg(Some(termcolor::Color::Yellow));
-            },
-            "E" | "F" => {
-                level_color.set_fg(Some(termcolor::Color::Black));
-                level_color.set_bg(Some(termcolor::Color::Red));
-            },
-            _ => (),
-        }
-
-        if args.time {
-            let _ = write!(&mut term, "[{:width$}]", time, width=TIME_LEN);
-            let _ = write!(&mut term, "{}", OUTPUT_SEP);
-        }
-
-        let _ = term.set_color(&level_color);
-        let _ = write!(&mut term, "{}", OUTPUT_SEP);
-        let _ = write!(&mut term, "{}", level);
-        let _ = write!(&mut term, "{}", OUTPUT_SEP);
-        let _ = term.reset();
-
-        let _ = write!(&mut term, "{}", OUTPUT_SEP);
-
-        if term_width < header_size {
-            let _ = write!(&mut term, "{}\n", msg);
-        } else {
-            let wrap_area = term_width - header_size;
-            let mut msg_len = msg.chars().map(|ch| ch.len_utf8()).sum();
-            let mut msg = msg.chars();
-
-            let mut last_char: Option<char> = None;
-            loop {
-                let mut consumed_len = 0;
-                let chunk_len = core::cmp::min(msg_len, wrap_area);
-
-                if let Some(ch) = last_char.take() {
-                    consumed_len += ch.len_utf8();
-                    msg_buffer.push(ch);
-                }
-
-                while let Some(ch) = msg.next() {
-                    //Take into account that font can take up to byte len of character
-                    //so that we wouldn't overflow with fat wide characters
-                    if (consumed_len + ch.len_utf8()) <= chunk_len {
-                        msg_buffer.push(ch);
-                        consumed_len += ch.len_utf8();
-
-                        if consumed_len == chunk_len {
-                            break;
-                        }
-                    } else {
-                        last_char = Some(ch);
-                        break;
-                    }
-                }
-
-                msg_len = msg_len.saturating_sub(consumed_len);
-
-                if msg_len > 0 {
-                    msg_buffer.push('\n');
-                    for _ in 0..header_size {
-                        msg_buffer.push(' ');
-                    }
-                } else {
-                    break;
-                }
-            }
-
-            let _ = write!(&mut term, "{}\n", msg_buffer);
-            msg_buffer.clear();
-        }
+        plogcat.handle_line(&line);
     }
-
-    //0
 }
