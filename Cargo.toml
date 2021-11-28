@@ -12,14 +12,18 @@ include = [
 ]
 
 [dependencies]
-arg = "0.3"
+arg = "0.3.1"
 c-ffi = "0.4"
-time = "0.2"
 
 termcolor = "1"
 term_size = "0.3"
 
 scope-guard = "1"
+
+[dependencies.time]
+version = "0.3"
+default-features = false
+features = ["local-offset", "parsing", "formatting", "macros"]
 
 [profile.release]
 lto = true

@@ -1,5 +1,12 @@
 use arg::Args;
 
+use core::convert::TryFrom;
+
+const TIME_PARSE: &'static [time::format_description::FormatItem<'static>] = time::macros::format_description!("%H:%M:%S");
+const DATETIME_PARSE: &'static [time::format_description::FormatItem<'static>] = time::macros::format_description!("%Y-%m-%d %H:%M:%S");
+
+const FULL_DATETIME_FMT: &'static [time::format_description::FormatItem<'static>] = time::macros::format_description!("%Y-%m-%d %H:%M:%S.0");
+
 #[derive(Debug)]
 pub struct Level(char);
 
@@ -57,13 +64,13 @@ pub struct Time(pub time::OffsetDateTime);
 impl Time {
     #[inline]
     fn duration_offset(diff: time::Duration) -> Self {
-        let now = time::OffsetDateTime::try_now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+        let now = time::OffsetDateTime::now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
         Self(now - diff)
     }
 
     #[inline]
     fn time_offset(diff: time::Time) -> Self {
-        let now = time::OffsetDateTime::try_now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+        let now = time::OffsetDateTime::now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
         let now_date = now.date();
         let now_time = now.time();
         let diff = time::PrimitiveDateTime::new(now_date, now_time) - time::PrimitiveDateTime::new(now_date, diff);
@@ -89,7 +96,7 @@ impl Time {
 
         let mut month_idx = 0;
         let year = if date_split.len() == 2 {
-            time::OffsetDateTime::try_now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc()).year()
+            time::OffsetDateTime::now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc()).year()
         } else if let Ok(year) = date_split[0].parse(){
             month_idx = 1;
             year
@@ -97,8 +104,11 @@ impl Time {
             return Err(());
         };
 
-        let month = if let Ok(month) = date_split[month_idx].parse() {
-            month
+        let month = if let Ok(month) = date_split[month_idx].parse::<u8>() {
+            match time::Month::try_from(month) {
+                Ok(month) => month,
+                Err(_) => return Err(()),
+            }
         } else {
             return Err(());
         };
@@ -109,7 +119,7 @@ impl Time {
             return Err(());
         };
 
-        let date = match time::Date::try_from_ymd(year, month, day) {
+        let date = match time::Date::from_calendar_date(year, month, day) {
             Ok(date) => date,
             Err(_) => return Err(()),
         };
@@ -129,12 +139,12 @@ impl Time {
             None => return Err(()),
         };
 
-        let time = match time::Time::try_from_hms(hour, minute, second) {
+        let time = match time::Time::from_hms(hour, minute, second) {
             Ok(time) => time,
             Err(_) => return Err(()),
         };
 
-        let offset = time::UtcOffset::try_current_local_offset().unwrap_or(time::UtcOffset::UTC);
+        let offset = time::UtcOffset::current_local_offset().unwrap_or(time::UtcOffset::UTC);
         Ok(Self(time::PrimitiveDateTime::new(date, time).assume_offset(offset)))
     }
 }
@@ -158,11 +168,11 @@ impl core::str::FromStr for Time {
                 Ok(time) => Ok(Self::duration_offset(time)),
                 _ => Err(())
             }
-        } else if let Ok(time) = time::Time::parse(text, "%H:%M:%S") {
+        } else if let Ok(time) = time::Time::parse(text, TIME_PARSE) {
             Ok(Self::time_offset(time))
-        } else if let Ok(time) = time::OffsetDateTime::parse(text, "%Y-%m-%d %H:%M:%S") {
+        } else if let Ok(time) = time::OffsetDateTime::parse(text, DATETIME_PARSE) {
             Ok(Time(time))
-        } else if let Ok(time) = time::OffsetDateTime::parse(text, time::Format::Rfc3339) {
+        } else if let Ok(time) = time::OffsetDateTime::parse(text, &time::format_description::well_known::Rfc3339) {
             Ok(Time(time))
         } else if let Ok(time) = Time::parse_adb_format(text) {
             Ok(time)
@@ -418,7 +428,7 @@ impl Cli {
 
         if let Some(ref time_limit) = self.time_limit {
             adb.arg("-T");
-            adb.arg(&time_limit.0.format("%Y-%m-%d %H:%M:%S.0"));
+            adb.arg(&time_limit.0.format(FULL_DATETIME_FMT).expect("To format time"));
         }
 
         adb
