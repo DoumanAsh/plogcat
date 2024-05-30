@@ -5,9 +5,8 @@ use std::io::BufRead;
 
 pub use plogcat::*;
 
-c_ffi::c_main!(run);
-
-fn run(args: c_ffi::Args) -> u8 {
+#[no_mangle]
+fn rust_main(args: c_main::Args) -> isize {
     let mut args = match cli::new(&args) {
         Ok(args) => args,
         Err(res) => return res,

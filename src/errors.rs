@@ -1,4 +1,4 @@
-pub const DUMPSYS_FAIL: u8 = 2;
-pub const ADB_FAIL: u8 = 3;
-pub const UTF8_ERROR: u8 = 4;
-pub const INTERNAL: u8 = 100;
+pub const DUMPSYS_FAIL: isize = 2;
+pub const ADB_FAIL: isize = 3;
+pub const UTF8_ERROR: isize = 4;
+pub const INTERNAL: isize = 100;

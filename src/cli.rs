@@ -268,7 +268,7 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn set_current_app(&mut self) -> Result<(), u8> {
+    pub fn set_current_app(&mut self) -> Result<(), isize> {
         use crate::errors::{DUMPSYS_FAIL, ADB_FAIL, UTF8_ERROR};
 
         let adb = std::process::Command::new("adb").arg("shell").arg("dumpsys").arg("activity").arg("activities").output();
@@ -323,7 +323,7 @@ impl Cli {
         Ok(())
     }
 
-    pub fn get_app_pid(&self) -> Result<Option<u64>, u8> {
+    pub fn get_app_pid(&self) -> Result<Option<u64>, isize> {
         const CANNOT_FIND: &str = "Cannot find application by provided name";
         const PS_SPACE: &[char] = &[' ', '\t'];
 
@@ -443,11 +443,11 @@ impl Cli {
     }
 }
 
-pub fn new(args: &c_ffi::Args) -> Result<Cli, u8> {
+pub fn new(args: &c_main::Args) -> Result<Cli, isize> {
     match Cli::from_args(args.into_iter().skip(1)) {
         Ok(args) => Ok(args),
-        Err(arg::ParseError::HelpRequested(help)) => {
-            println!("{}", help);
+        Err(error) if error.is_help() => {
+            println!("{}", error);
             Err(0)
         },
         Err(error) => {
