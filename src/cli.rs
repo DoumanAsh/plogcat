@@ -443,7 +443,7 @@ impl Cli {
     }
 }
 
-pub fn new(args: &c_main::Args) -> Result<Cli, isize> {
+pub fn new<'a, T: IntoIterator<Item = &'a str>>(args: T) -> Result<Cli, isize> {
     match Cli::from_args(args.into_iter().skip(1)) {
         Ok(args) => Ok(args),
         Err(error) if error.is_help() => {

@@ -52,7 +52,7 @@ jobs:
         rustc --version
 
     - name: Check
-      run: cargo check
+      run: cargo check --features bin
 
     - name: Test
       run: cargo test --lib

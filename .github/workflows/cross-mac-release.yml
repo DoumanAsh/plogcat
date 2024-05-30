@@ -38,7 +38,7 @@ jobs:
       run: rustup target add ${{matrix.target}}
 
     - name: Build release
-      run: SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.1 --show-sdk-platform-version)  cargo build --release --target ${{matrix.target}}
+      run: SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.1 --show-sdk-platform-version)  cargo build --release --features bin --target ${{matrix.target}}
       env:
         RUSTFLAGS: '-C link-arg=-s'
 
