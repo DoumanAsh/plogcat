@@ -1,6 +1,6 @@
 # plogcat (pretty logcat)
 
-![Rust](https://github.com/DoumanAsh/plogcat/workflows/Rust/badge.svg?branch=master)
+[![Rust](https://github.com/DoumanAsh/plogcat/actions/workflows/rust.yml/badge.svg)](https://github.com/DoumanAsh/plogcat/actions/workflows/rust.yml)
 
 Simple wrapper over logcat to provide easy way to interact with `adb logcat`
 
