@@ -7,6 +7,7 @@ Simple wrapper over logcat to provide easy way to interact with `adb logcat`
 ## Usage
 
 ```
+plogcat 1.0.0
 Colorful wrapper over adb logcat command
 
 USAGE: [OPTIONS] [app]
@@ -32,5 +33,5 @@ OPTIONS:
     -i,  --ignored-tag <ignored_tag>...  List of tags to exclude from output.
 
 ARGS:
-    [app]  Package name or pid by which to filter logcat
+    [app]  Package name or pid by which to filter logcat. If multiple apps found with the same name, it will output for every match
 ```

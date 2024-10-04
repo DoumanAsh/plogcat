@@ -1,13 +1,17 @@
-#![no_main]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
 
 use std::io::BufRead;
 
 pub use plogcat::*;
 
-#[no_mangle]
-fn rust_main(args: c_main::Args) -> isize {
-    let mut args = match cli::new(&args) {
+fn main() {
+    let code = run();
+    std::process::exit(code as _);
+}
+
+fn run() -> isize {
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    let mut args = match cli::new(args.iter().map(String::as_str)) {
         Ok(args) => args,
         Err(res) => return res,
     };
@@ -26,11 +30,12 @@ fn rust_main(args: c_main::Args) -> isize {
     }
 
     match args.get_app_pid() {
-        Ok(Some(pid)) => {
-            println!(">Filtering by pid {}", pid);
-            adb.arg(&format!("--pid={}", pid));
+        Ok(pids) => {
+            for pid in pids {
+                println!(">Filtering by pid {}", pid);
+                adb.arg(&format!("--pid={}", pid));
+            }
         },
-        Ok(None) => (),
         Err(err) => return err,
     }
 

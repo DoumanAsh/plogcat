@@ -35,7 +35,7 @@ jobs:
       run: cargo install cross
 
     - name: Build release
-      run: cross build --release --features bin --target ${{matrix.target}}
+      run: cross build --release --target ${{matrix.target}}
       env:
         RUSTFLAGS: '-C link-arg=-s'
 

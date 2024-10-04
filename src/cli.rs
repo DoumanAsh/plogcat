@@ -263,7 +263,7 @@ pub struct Cli {
     ///List of tags to exclude from output.
     pub ignored_tag: Vec<String>,
 
-    ///Package name or pid by which to filter logcat
+    ///Package name or pid by which to filter logcat. If multiple apps found with the same name, it will output for every match
     pub app: Option<App>,
 }
 
@@ -323,13 +323,13 @@ impl Cli {
         Ok(())
     }
 
-    pub fn get_app_pid(&self) -> Result<Option<u64>, isize> {
+    pub fn get_app_pid(&self) -> Result<Vec<u64>, isize> {
         const CANNOT_FIND: &str = "Cannot find application by provided name";
         const PS_SPACE: &[char] = &[' ', '\t'];
 
         let name = match self.app.as_ref() {
-            Some(App::Pid(pid)) => return Ok(Some(*pid)),
-            None => return Ok(None),
+            Some(App::Pid(pid)) => return Ok(vec![*pid]),
+            None => return Ok(Vec::new()),
             Some(App::PackageName(name)) => name.as_str(),
         };
 
@@ -347,7 +347,7 @@ impl Cli {
 
         if output.status.success() {
             if let Ok(stdout) = core::str::from_utf8(&output.stdout) {
-                let mut result = None;
+                let mut result = Vec::new();
 
                 for line in stdout.lines() {
                     if line.contains(name) {
@@ -364,14 +364,20 @@ impl Cli {
                         }
 
                         if let Some(pid) = pid {
-                            result = pid.parse().ok();
-                            break;
+                            match pid.parse() {
+                                Ok(pid) => {
+                                    result.push(pid);
+                                },
+                                Err(error) => {
+                                    eprintln!("Cannot parse pid='{pid}': {error}");
+                                }
+                            }
                         }
                     }
                 }
 
-                if let Some(result) = result {
-                    return Ok(Some(result))
+                if !result.is_empty() {
+                    return Ok(result)
                 }
             }
         }
@@ -444,7 +450,7 @@ impl Cli {
 }
 
 pub fn new<'a, T: IntoIterator<Item = &'a str>>(args: T) -> Result<Cli, isize> {
-    match Cli::from_args(args.into_iter().skip(1)) {
+    match Cli::from_args(args.into_iter()) {
         Ok(args) => Ok(args),
         Err(error) if error.is_help() => {
             println!("{}", error);

@@ -24,16 +24,8 @@ version = "0.3"
 default-features = false
 features = ["local-offset", "parsing", "formatting", "macros"]
 
-[dependencies.c-main]
-version = "1"
-optional = true
-
-[features]
-bin = ["c-main"]
-
 [[bin]]
 name = "plogcat"
-required-features = ["bin"]
 
 [profile.release]
 lto = true

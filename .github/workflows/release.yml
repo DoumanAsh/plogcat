@@ -44,11 +44,11 @@ jobs:
 
     - name: Build release Win
       if: runner.os == 'Windows'
-      run: cargo build --release --features bin
+      run: cargo build --release
 
     - name: Build release Unix
       if: runner.os != 'Windows'
-      run: cargo build --release --features bin
+      run: cargo build --release
       env:
         RUSTFLAGS: '-C link-arg=-s'
 
